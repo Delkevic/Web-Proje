@@ -7,6 +7,8 @@ import dayjs from 'dayjs';
 const { Title } = Typography;
 
 const normalizeDateFormat = (dateStr) => {
+  if (!dateStr) return '';
+  
   if (!isNaN(dateStr) && typeof dateStr === 'string') {
     try {
       const excelEpoch = new Date(1899, 11, 30); 
@@ -40,7 +42,8 @@ const normalizeTimeFormat = (time) => {
   if (typeof time === 'string' && time.includes(':')) {
     const [hour, minute] = time.split(':');
     const formattedHour = hour.length === 1 ? `0${hour}` : hour;
-    return `${formattedHour}:${minute}`;
+    const formattedMinute = minute && minute.length === 1 ? `0${minute}` : minute;
+    return `${formattedHour}:${formattedMinute || '00'}`;
   }
   
   return time.toString();
@@ -49,6 +52,7 @@ const normalizeTimeFormat = (time) => {
 function AppointmentsList({ user, sheetBestUrl }) {
   const [userAppointments, setUserAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [doctors, setDoctors] = useState([]);
   
   const handleDelete = async (appointmentId) => {
     try {
@@ -80,15 +84,9 @@ function AppointmentsList({ user, sheetBestUrl }) {
       dataIndex: 'date',
       key: 'date',
       render: (text) => {
+        const normalizedDate = normalizeDateFormat(text);
         try {
-          if (!isNaN(text) && typeof text === 'string') {
-            const excelEpoch = new Date(1899, 11, 30);
-            const parsedDate = new Date(excelEpoch);
-            parsedDate.setDate(parsedDate.getDate() + parseInt(text));
-            return dayjs(parsedDate).format('DD.MM.YYYY');
-          } else {
-            return dayjs(text).format('DD.MM.YYYY');
-          }
+          return dayjs(normalizedDate).format('DD.MM.YYYY');
         } catch (e) {
           console.error('Date parsing error:', e);
           return text; 
@@ -110,6 +108,21 @@ function AppointmentsList({ user, sheetBestUrl }) {
       title: 'Doktor',
       dataIndex: 'doctorName',
       key: 'doctorName',
+      render: (text, record) => {
+        let specialty = record.doctorSpeciality;
+        
+        if (!specialty && record.doctorId) {
+          const doctorInfo = doctors.find(doc => doc.doctorId === record.doctorId);
+          specialty = doctorInfo?.speciality;
+        }
+        
+        return (
+          <span>
+            {text}
+            {specialty && ` - ${specialty}`}
+          </span>
+        );
+      }
     },
     {
       title: 'Durum',
@@ -147,7 +160,19 @@ function AppointmentsList({ user, sheetBestUrl }) {
   
   useEffect(() => {
     fetchUserAppointments();
+    fetchDoctors();
   }, [user, sheetBestUrl]);
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await axios.get(`${sheetBestUrl}/tabs/Doctors`);
+      if (Array.isArray(response.data)) {
+        setDoctors(response.data);
+      }
+    } catch (error) {
+      console.error('Doktorlar yüklenemedi:', error);
+    }
+  };
 
   const fetchUserAppointments = async () => {
     if (!user?.userId) return;
@@ -157,6 +182,9 @@ function AppointmentsList({ user, sheetBestUrl }) {
       const response = await axios.get(`${sheetBestUrl}/tabs/Appointments`);
       if (Array.isArray(response.data)) {
         const userAppts = response.data.filter(apt => apt.userId === user.userId);
+        if (userAppts.length > 0) {
+          console.log('First appointment:', userAppts[0]);
+        }
         userAppts.sort((a, b) => {
           const dateStrA = normalizeDateFormat(a.date);
           const dateStrB = normalizeDateFormat(b.date);
@@ -179,6 +207,7 @@ function AppointmentsList({ user, sheetBestUrl }) {
   
   return (
     <Spin spinning={loading}>
+      <h2 style={{margin:"auto"}}>Randevularım</h2>
       {userAppointments.length > 0 ? (
         <Table
           columns={appointmentColumns}

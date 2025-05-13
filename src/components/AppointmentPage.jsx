@@ -41,13 +41,16 @@ function AppointmentPage({ user, onLogout }) {
     if (typeof time === 'string' && time.includes(':')) {
       const [hour, minute] = time.split(':');
       const formattedHour = hour.length === 1 ? `0${hour}` : hour;
-      return `${formattedHour}:${minute}`;
+      const formattedMinute = minute && minute.length === 1 ? `0${minute}` : minute;
+      return `${formattedHour}:${formattedMinute || '00'}`;
     }
     
     return time.toString(); 
   };
 
   const normalizeDateFormat = (dateStr) => {
+    if (!dateStr) return '';
+    
     if (!isNaN(dateStr) && typeof dateStr === 'string') {
       try {
         const excelEpoch = new Date(1899, 11, 30);
@@ -113,47 +116,48 @@ function AppointmentPage({ user, onLogout }) {
     }
   }, [selectedClinic, sheetBestUrl, form]);
 
-  useEffect(() => {
-    const generateTimeSlots = async () => {
-      if (!selectedDoctor || !selectedDate) return;
+  const generateTimeSlots = async () => {
+    if (!selectedDoctor || !selectedDate) return;
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const formattedDate = selectedDate.format('YYYY-MM-DD');
-        const response = await axios.get(`${sheetBestUrl}/tabs/Appointments`);
+      const formattedDate = selectedDate.format('YYYY-MM-DD');
+      const response = await axios.get(`${sheetBestUrl}/tabs/Appointments`);
 
-        const allTimeSlots = [];
-        for (let hour = 8; hour < 17; hour++) {
-          for (let minute of ['00', '15', '30', '45']) {
-            const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
-            allTimeSlots.push(`${formattedHour}:${minute}`);
-          }
+      const allTimeSlots = [];
+      for (let hour = 8; hour < 17; hour++) {
+        for (let minute of ['00', '15', '30', '45']) {
+          const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
+          allTimeSlots.push(`${formattedHour}:${minute}`);
         }
-
-        const booked = [];
-        if (Array.isArray(response.data)) {
-          setAppointments(response.data);
-          response.data
-            .filter(apt => {
-              return apt.doctorId === selectedDoctor && 
-                     normalizeDateFormat(apt.date) === formattedDate;
-            })
-            .forEach(apt => {
-              booked.push(normalizeTimeFormat(apt.timeSlot));
-            });
-        }
-
-        setBookedTimes(booked);
-        setAvailableTimes(allTimeSlots);
-      } catch (error) {
-        console.error('Randevu saatleri oluşturulamadı:', error);
-        message.error('Müsait saatler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
       }
-    };
 
+      const booked = [];
+      if (Array.isArray(response.data)) {
+        setAppointments(response.data);
+        response.data
+          .filter(apt => {
+            const normalizedAppointmentDate = normalizeDateFormat(apt.date);
+            return apt.doctorId === selectedDoctor && 
+                  normalizedAppointmentDate === formattedDate;
+          })
+          .forEach(apt => {
+            booked.push(normalizeTimeFormat(apt.timeSlot));
+          });
+      }
+
+      setBookedTimes(booked);
+      setAvailableTimes(allTimeSlots);
+    } catch (error) {
+      console.error('Randevu saatleri oluşturulamadı:', error);
+      message.error('Müsait saatler yüklenirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (selectedDoctor && selectedDate) {
       generateTimeSlots();
       form.setFieldValue('time', null);
@@ -174,7 +178,9 @@ function AppointmentPage({ user, onLogout }) {
 
   const isTimeSlotBooked = (timeSlot) => {
     const normalizedTimeSlot = normalizeTimeFormat(timeSlot);
-    return bookedTimes.includes(normalizedTimeSlot);
+    return bookedTimes.some(bookedTime => 
+      normalizeTimeFormat(bookedTime) === normalizedTimeSlot
+    );
   };
 
   const verifyTimeSlotAvailability = async (doctorId, date, timeSlot) => {
@@ -182,13 +188,17 @@ function AppointmentPage({ user, onLogout }) {
       const response = await axios.get(`${sheetBestUrl}/tabs/Appointments`);
       if (Array.isArray(response.data)) {
         const normalizedTimeSlot = normalizeTimeFormat(timeSlot);
-        const normalizedDate = date;
+        const normalizedDate = normalizeDateFormat(date);
         
-        const isBooked = response.data.some(
-          apt => apt.doctorId === doctorId &&
-                normalizeDateFormat(apt.date) === normalizedDate &&
-                normalizeTimeFormat(apt.timeSlot) === normalizedTimeSlot
-        );
+        const isBooked = response.data.some(apt => {
+          const aptNormalizedDate = normalizeDateFormat(apt.date);
+          const aptNormalizedTime = normalizeTimeFormat(apt.timeSlot);
+          
+          return apt.doctorId === doctorId &&
+                aptNormalizedDate === normalizedDate &&
+                aptNormalizedTime === normalizedTimeSlot;
+        });
+        
         return { available: !isBooked, appointments: response.data };
       }
       return { available: false, appointments: [] };
@@ -203,11 +213,12 @@ function AppointmentPage({ user, onLogout }) {
       setLoading(true);
 
       const formattedDate = values.date.format('YYYY-MM-DD');
+      const formattedTime = normalizeTimeFormat(values.time);
 
       const verificationResult = await verifyTimeSlotAvailability(
         values.doctor,
         formattedDate,
-        values.time
+        formattedTime
       );
 
       if (!verificationResult.available) {
@@ -215,9 +226,11 @@ function AppointmentPage({ user, onLogout }) {
 
         setAppointments(verificationResult.appointments);
         const updatedBookedTimes = verificationResult.appointments
-          .filter(apt => apt.doctorId === values.doctor && 
-                 normalizeDateFormat(apt.date) === formattedDate)
-          .map(apt => apt.timeSlot);
+          .filter(apt => {
+            const normalizedAptDate = normalizeDateFormat(apt.date);
+            return apt.doctorId === values.doctor && normalizedAptDate === formattedDate;
+          })
+          .map(apt => normalizeTimeFormat(apt.timeSlot));
 
         setBookedTimes(updatedBookedTimes);
         setLoading(false);
@@ -225,7 +238,9 @@ function AppointmentPage({ user, onLogout }) {
       }
 
       const clinicName = clinics.find(c => c.clinicId === values.clinic)?.clinicName || '';
-      const doctorName = doctors.find(d => d.doctorId === values.doctor)?.doctorName || '';
+      const selectedDoctor = doctors.find(d => d.doctorId === values.doctor) || {};
+      const doctorName = selectedDoctor.doctorName || '';
+      const doctorSpeciality = selectedDoctor.speciality || '';
 
       const appointmentData = {
         appointmentId: `APT_${Date.now()}`,
@@ -236,8 +251,9 @@ function AppointmentPage({ user, onLogout }) {
         clinicName: clinicName,
         doctorId: values.doctor,
         doctorName: doctorName,
+        doctorSpeciality: doctorSpeciality,
         date: formattedDate,
-        timeSlot: values.time,
+        timeSlot: formattedTime,
         status: 'Onaylandı',
         createdAt: new Date().toISOString()
       };
@@ -245,7 +261,7 @@ function AppointmentPage({ user, onLogout }) {
       const finalVerification = await verifyTimeSlotAvailability(
         values.doctor,
         formattedDate,
-        values.time
+        formattedTime
       );
 
       if (!finalVerification.available) {
@@ -253,9 +269,11 @@ function AppointmentPage({ user, onLogout }) {
 
         setAppointments(finalVerification.appointments);
         const updatedBookedTimes = finalVerification.appointments
-          .filter(apt => apt.doctorId === values.doctor && 
-                 normalizeDateFormat(apt.date) === formattedDate)
-          .map(apt => apt.timeSlot);
+          .filter(apt => {
+            const normalizedAptDate = normalizeDateFormat(apt.date);
+            return apt.doctorId === values.doctor && normalizedAptDate === formattedDate;
+          })
+          .map(apt => normalizeTimeFormat(apt.timeSlot));
 
         setBookedTimes(updatedBookedTimes);
         setLoading(false);
@@ -265,7 +283,7 @@ function AppointmentPage({ user, onLogout }) {
       await axios.post(`${sheetBestUrl}/tabs/Appointments`, appointmentData);
 
       setAppointments([...finalVerification.appointments, appointmentData]);
-      setBookedTimes([...bookedTimes, values.time]);
+      setBookedTimes([...bookedTimes, formattedTime]);
 
       message.success('Randevunuz başarıyla oluşturuldu!');
 
@@ -349,7 +367,7 @@ function AppointmentPage({ user, onLogout }) {
                 >
                   {doctors.map(doctor => (
                     <Option key={doctor.doctorId} value={doctor.doctorId}>
-                      {doctor.doctorName}
+                      {doctor.doctorName}{doctor.speciality ? ` - ${doctor.speciality}` : ''}
                     </Option>
                   ))}
                 </Select>

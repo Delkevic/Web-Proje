@@ -6,6 +6,7 @@
 
 .container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
@@ -14,6 +15,17 @@
   width: 100vw; 
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.auth-logo-container {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.auth-logo {
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
 }
 
 .auth-card {

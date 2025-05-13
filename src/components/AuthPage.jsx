@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Form, Input, Button, Card, message, Typography, Spin } from 'antd';
 import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import logo from '../assets/logo.png'; 
 
 const { Title, Text } = Typography;
 
@@ -104,6 +105,9 @@ function AuthPage({ onLoginSuccess }) {
   
   return (
     <div className="container">
+      <div className="auth-logo-container">
+        <img src={logo} alt="Logo" className="auth-logo" />
+      </div>
       <Card 
         className="auth-card" 
         bordered={false} 
