@@ -1,0 +1,105 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  width: 100vw; 
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-card {
+  border-radius: 10px;
+  background-color: #fff;
+  max-width: 400px;
+  width: 100%;
+}
+
+.auth-card .ant-card-body {
+  padding: 30px;
+}
+
+.auth-switch {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+}
+
+.ant-form-item-explain-error {
+  color: #ff4d4f;
+  font-size: 14px;
+  padding-top: 4px;
+}
+
+.ant-form-item-has-error .ant-input-password {
+  border-color: #ff4d4f !important;
+}
+
+.notification-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notification-card.success .ant-notification-notice-message {
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.notification-card.error .ant-notification-notice-message {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.ant-notification-notice-icon {
+  font-size: 24px;
+}
+
+.appointment-layout {
+  min-height: 100vh;
+}
+
+.appointment-header {
+  background: #1890ff;
+  padding: 0 20px;
+  position: fixed;
+  width: 100%;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.appointment-content {
+  padding: 84px 20px 20px;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+.appointment-card {
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ant-select-selector, .ant-picker {
+  height: 40px !important;
+  border-radius: 6px !important;
+}
