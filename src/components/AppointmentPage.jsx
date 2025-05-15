@@ -408,17 +408,6 @@ function AppointmentPage({ user, onLogout }) {
                       disabled={!selectedDate}
                       suffixIcon={<ClockCircleOutlined />}
                       onChange={handleTimeSelect}
-                      dropdownRender={(menu) => (
-                        <>
-                          {menu}
-                          {bookedTimes.length > 0 && (
-                            <div style={{ padding: '8px', color: '#ff4d4f', textAlign: 'center' }}>
-                              <ExclamationCircleOutlined style={{ marginRight: '5px' }} />
-                              Kırmızı ile işaretlenmiş saatler dolu
-                            </div>
-                          )}
-                        </>
-                      )}
                     >
                       {availableTimes.map(time => {
                         const isBooked = isTimeSlotBooked(time);
