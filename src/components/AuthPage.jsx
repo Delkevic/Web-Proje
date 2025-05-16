@@ -30,7 +30,6 @@ function AuthPage({ onLoginSuccess }) {
       if (userWithTC) {
         if (userWithTC.sifre === values.sifre) {
           message.success(`Hoş geldiniz, ${userWithTC.isimSoyisim}!`);
-          form.resetFields();
           onLoginSuccess && onLoginSuccess(userWithTC);
         } else {
           form.setFields([
@@ -45,11 +44,6 @@ function AuthPage({ onLoginSuccess }) {
       }
     } catch (error) {
       console.error('Giriş hatası:', error);
-      console.error('Error details:', {
-        message: error.message,
-        url: completeSheetBestUrl,
-        status: error.response?.status
-      });
       message.error('Giriş yapılırken bir hata oluştu.');
     } finally {
       setLoading(false);

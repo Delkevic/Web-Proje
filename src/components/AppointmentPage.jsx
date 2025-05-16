@@ -220,19 +220,10 @@ function AppointmentPage({ user, onLogout }) {
         formattedDate,
         formattedTime
       );
-
+      
+      // Verify time slot is still available
       if (!verificationResult.available) {
-        message.error('Bu randevu saati şu anda dolu. Lütfen başka bir saat seçin.');
-
-        setAppointments(verificationResult.appointments);
-        const updatedBookedTimes = verificationResult.appointments
-          .filter(apt => {
-            const normalizedAptDate = normalizeDateFormat(apt.date);
-            return apt.doctorId === values.doctor && normalizedAptDate === formattedDate;
-          })
-          .map(apt => normalizeTimeFormat(apt.timeSlot));
-
-        setBookedTimes(updatedBookedTimes);
+        message.error('Bu randevu saati artık müsait değil. Lütfen başka bir saat seçin.');
         setLoading(false);
         return;
       }
@@ -258,31 +249,9 @@ function AppointmentPage({ user, onLogout }) {
         createdAt: new Date().toISOString()
       };
 
-      const finalVerification = await verifyTimeSlotAvailability(
-        values.doctor,
-        formattedDate,
-        formattedTime
-      );
-
-      if (!finalVerification.available) {
-        message.error('Bu randevu saati başka bir kullanıcı tarafından alındı. Lütfen başka bir saat seçin.');
-
-        setAppointments(finalVerification.appointments);
-        const updatedBookedTimes = finalVerification.appointments
-          .filter(apt => {
-            const normalizedAptDate = normalizeDateFormat(apt.date);
-            return apt.doctorId === values.doctor && normalizedAptDate === formattedDate;
-          })
-          .map(apt => normalizeTimeFormat(apt.timeSlot));
-
-        setBookedTimes(updatedBookedTimes);
-        setLoading(false);
-        return;
-      }
-
       await axios.post(`${sheetBestUrl}/tabs/Appointments`, appointmentData);
 
-      setAppointments([...finalVerification.appointments, appointmentData]);
+      setAppointments([...verificationResult.appointments, appointmentData]);
       setBookedTimes([...bookedTimes, formattedTime]);
 
       message.success('Randevunuz başarıyla oluşturuldu!');
@@ -291,6 +260,9 @@ function AppointmentPage({ user, onLogout }) {
       setSelectedClinic(null);
       setSelectedDoctor(null);
       setSelectedDate(null);
+      setAvailableTimes([]);
+      setDoctors([]);
+      
     } catch (error) {
       console.error('Randevu oluşturma hatası:', error);
       message.error('Randevu oluşturulurken bir hata oluştu.');
@@ -323,7 +295,6 @@ function AppointmentPage({ user, onLogout }) {
       return (
         <Card
           className="appointment-card"
-          bordered={false}
           title={<Title level={4}>Randevu Oluştur</Title>}
         >
           <Spin spinning={loading}>
@@ -448,7 +419,6 @@ function AppointmentPage({ user, onLogout }) {
       return (
         <Card
           className="appointments-list-card"
-          bordered={false}
           title={<Title level={4}>Randevularım</Title>}
         >
           <AppointmentsList user={user} sheetBestUrl={sheetBestUrl} />
